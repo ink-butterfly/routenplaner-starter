@@ -1,6 +1,9 @@
+// ignore_for_file: unused_import
+
 // Ein Routenplaner: deine Funktionen. Der Server (./run dart) fragt sie und
 // zeigt im Browser, was sie schon können. Die Klassen Point, Way, Edge und
 // Graph und visit(node) stehen in graph.dart.
+
 import 'dart:collection';
 import 'dart:io';
 import 'dart:math';
@@ -13,18 +16,65 @@ export 'graph.dart';
 // sind »ID LÄNGE,BREITE ID LÄNGE,BREITE …«.
 //   [Way('residential', '', 'Schloßstraße', [Point('26735834', 13.3266, 52.4567), …]), …]
 List<Way> readWays(String path) {
-  throw UnimplementedError('readWays');
+  List<Way> ways = [];
+
+  for (String cat in File(path).readAsLinesSync()) {
+    List<String> line = cat.split('\t');
+
+    String classification = line[0];
+    String oneWayStreet = line[1];
+    String name = line[2];
+
+    List<String> sPoints = line[3].split(' ');
+    List<Point> points = [];
+    for (int i = 0; i < sPoints.length; i += 2) {
+      String pointId = sPoints[i];
+
+      List<String> lonLat = sPoints[i + 1].split(',');
+      double longitude = double.parse(lonLat[0]);
+      double latitude = double.parse(lonLat[1]);
+
+      points.add(Point(pointId, longitude, latitude));
+    }
+    ways.add(Way(classification, oneWayStreet, name, points));
+  }
+  return ways;
 }
 
 // Der Abstand zweier Punkte in Metern
 double distance(double lon1, double lat1, double lon2, double lat2) {
-  throw UnimplementedError('distance');
+  double radiens(double degrees) => degrees * pi / 180;
+  final double factor = pi / 180 * 6371000;
+  double dLon = (lon1 - lon2);
+  double dLat = (lat1 - lat2);
+  double mitte = radiens((lat1 + lat2) / 2);
+  return sqrt(pow(dLon * cos(mitte), 2) + pow(dLat, 2)) * factor;
 }
 
 // Der Graph aus den Wegen: in nodes jeder Punkt, in edges für jeden Punkt
 // die Kanten zu seinen Nachbarn, in beide Richtungen, mit Metern als Kosten
 Graph buildGraph(List<Way> ways) {
-  throw UnimplementedError('buildGraph');
+  final Graph graph = Graph();
+  for (Way way in ways) {
+    List<Point> points = way.points;
+    for (int i = 1; i < points.length; i++) {
+      final Point pointFrom = points[i - 1], pointTo = points[i];
+
+      graph.nodes[pointFrom.id] = pointFrom;
+      graph.nodes[pointTo.id] = pointTo;
+
+      double dFromTo = distance(
+        pointFrom.lon,
+        pointFrom.lat,
+        pointTo.lon,
+        pointTo.lat,
+      );
+
+      graph.addEdge(pointFrom.id, pointTo.id, dFromTo);
+      graph.addEdge(pointTo.id, pointFrom.id, dFromTo);
+    }
+  }
+  return graph;
 }
 
 // Einfach losgehen: von node aus zu jedem Nachbarn und von dort weiter, bis
@@ -33,7 +83,18 @@ Graph buildGraph(List<Way> ways) {
 // Als Erstes ruft walk visit(node) auf: Damit zeigt die Karte, wo die Suche
 // gerade ist; für die Suche selbst tut visit nichts.
 List<String>? walk(Graph graph, String node, String goal) {
-  throw UnimplementedError('walk');
+  visit(node);
+  if (node == goal) return [node];
+  List<Edge>? edges = graph.edges[node];
+  if (edges == null) return null;
+  for (var edge in edges) {
+    List<String>? path = walk(graph, edge.to, goal);
+    if (path != null) {
+      path.insert(0, node);
+      return path;
+    }
+  }
+  return null;
 }
 
 // Tiefensuche: wie walk, aber jeden Knoten nur einmal. depthFirst legt die
@@ -47,7 +108,25 @@ List<String>? depthFirst(Graph graph, String start, String goal) {
 }
 
 List<String>? search(Graph graph, String node, String goal, Set<String> seen) {
-  throw UnimplementedError('search');
+  visit(node);
+  if (node == goal) return [node];
+
+  seen.add(node);
+
+  List<Edge>? edges = graph.edges[node];
+  if (edges == null) return null;
+
+  for (Edge edge in edges) {
+    if (seen.contains(edge.to)) continue;
+
+    List<String>? path = search(graph, edge.to, goal, seen);
+    if (path != null) {
+      path.insert(0, node);
+      return path;
+    }
+  }
+
+  return null;
 }
 
 // Der Weg zum Ziel, rückwärts aus den Vorgängern: previous sagt für jeden
@@ -97,17 +176,57 @@ List<String>? aStar(Graph graph, String start, String goal) {
 // Wie schnell man auf welcher Art von Weg vorankommt, in km/h. Was in der
 // Liste einer Art zu reisen fehlt, darf man so nicht benutzen.
 const speeds = {
-  'foot': {'footway': 5, 'path': 5, 'pedestrian': 5, 'steps': 2, 'living_street': 5,
-           'residential': 5, 'service': 5, 'unclassified': 5, 'tertiary': 5, 'secondary': 5,
-           'primary': 5, 'track': 5, 'cycleway': 5, 'bridleway': 5, 'ferry': 5},
-  'bike': {'cycleway': 18, 'residential': 15, 'living_street': 10, 'service': 12,
-           'unclassified': 15, 'tertiary': 16, 'secondary': 16, 'primary': 16,
-           'tertiary_link': 15, 'secondary_link': 15, 'primary_link': 15,
-           'path': 12, 'track': 10, 'bridleway': 10, 'ferry': 10},
-  'car': {'motorway': 90, 'motorway_link': 50, 'trunk': 60, 'trunk_link': 40,
-          'primary': 50, 'primary_link': 30, 'secondary': 45, 'secondary_link': 30,
-          'tertiary': 40, 'tertiary_link': 30, 'unclassified': 30, 'residential': 25,
-          'living_street': 7, 'service': 10, 'ferry': 10},
+  'foot': {
+    'footway': 5,
+    'path': 5,
+    'pedestrian': 5,
+    'steps': 2,
+    'living_street': 5,
+    'residential': 5,
+    'service': 5,
+    'unclassified': 5,
+    'tertiary': 5,
+    'secondary': 5,
+    'primary': 5,
+    'track': 5,
+    'cycleway': 5,
+    'bridleway': 5,
+    'ferry': 5,
+  },
+  'bike': {
+    'cycleway': 18,
+    'residential': 15,
+    'living_street': 10,
+    'service': 12,
+    'unclassified': 15,
+    'tertiary': 16,
+    'secondary': 16,
+    'primary': 16,
+    'tertiary_link': 15,
+    'secondary_link': 15,
+    'primary_link': 15,
+    'path': 12,
+    'track': 10,
+    'bridleway': 10,
+    'ferry': 10,
+  },
+  'car': {
+    'motorway': 90,
+    'motorway_link': 50,
+    'trunk': 60,
+    'trunk_link': 40,
+    'primary': 50,
+    'primary_link': 30,
+    'secondary': 45,
+    'secondary_link': 30,
+    'tertiary': 40,
+    'tertiary_link': 30,
+    'unclassified': 30,
+    'residential': 25,
+    'living_street': 7,
+    'service': 10,
+    'ferry': 10,
+  },
 };
 
 // Der Graph für eine Art zu reisen ('foot', 'bike', 'car'): wie buildGraph,
