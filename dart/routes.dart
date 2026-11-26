@@ -85,14 +85,13 @@ Graph buildGraph(List<Way> ways) {
 List<String>? walk(Graph graph, String node, String goal) {
   visit(node);
   if (node == goal) return [node];
-  List<Edge>? edges = graph.edges[node];
-  if (edges == null) return null;
-  for (var edge in edges) {
+
+  for (var edge in graph.edges[node]!) {
     List<String>? path = walk(graph, edge.to, goal);
-    if (path != null) {
-      path.insert(0, node);
-      return path;
-    }
+    if (path == null) continue;
+
+    path.insert(0, node);
+    return path;
   }
   return null;
 }
