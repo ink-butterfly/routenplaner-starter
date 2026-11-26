@@ -140,6 +140,11 @@ List<String>? pathTo(Map<String, String?> previous, String goal) {
 // Knoten dran ist: Damit spielt die Karte die Suche ab.
 List<String>? breadthFirst(Graph graph, String start, String goal) {
   throw UnimplementedError('breadthFirst');
+  // Set<String> seen = {};
+
+  // for (Edge edge in graph.edges[start]!) {
+  //   seen.add(edge.to);
+  // }
 }
 
 // Dijkstra: der kürzeste Weg in Metern. Gibt dasselbe zurück wie breadthFirst.
