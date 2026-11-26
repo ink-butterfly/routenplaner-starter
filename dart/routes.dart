@@ -71,7 +71,7 @@ Graph buildGraph(List<Way> ways) {
       );
 
       graph.addEdge(pointFrom.id, pointTo.id, dFromTo);
-      graph.addEdge(pointTo.id, pointFrom.id, dFromTo);
+      if (way.kind != 'yes') graph.addEdge(pointTo.id, pointFrom.id, dFromTo);
     }
   }
   return graph;
@@ -159,11 +159,24 @@ class MinHeap {
   int get length => items.length;
 
   void push(double priority, String value) {
-    throw UnimplementedError('MinHeap.push');
+    // throw UnimplementedError('MinHeap.push');
+    items.add((priority, value));
+    for (
+      int i = items.length - 1;
+      i > 0 && items[i].$1 < items[i - 1].$1;
+      i++
+    ) {
+      (double, String) temp = items[i];
+      items[i] = items[i - 1];
+      items[i - 1] = temp;
+    }
   }
 
   (double, String)? pop() {
-    throw UnimplementedError('MinHeap.pop');
+    if (isEmpty) return null;
+    (double, String) out = items[0];
+    items.removeAt(0);
+    return out;
   }
 }
 
