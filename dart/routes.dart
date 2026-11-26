@@ -113,17 +113,17 @@ List<String>? search(Graph graph, String node, String goal, Set<String> seen) {
 
   seen.add(node);
 
-  List<Edge>? edges = graph.edges[node];
-  if (edges == null) return null;
+  List<Edge> edges = graph.edges[node]!;
+  edges.shuffle();
 
   for (Edge edge in edges) {
     if (seen.contains(edge.to)) continue;
 
     List<String>? path = search(graph, edge.to, goal, seen);
-    if (path != null) {
-      path.insert(0, node);
-      return path;
-    }
+    if (path == null) continue;
+
+    path.insert(0, node);
+    return path;
   }
 
   return null;
