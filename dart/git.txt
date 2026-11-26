@@ -1,1 +1,1 @@
-git add dart && git commit -m 'dart/' && git pull && git push
+git add dart && git commit -m 'dart/' && git pull && git push && clear
