@@ -136,8 +136,8 @@ List<String>? pathTo(Map<String, String?> previous, String goal) {
   List<String>? path = [];
 
   for (String? cNode = goal; cNode != null; cNode = previous[cNode]) {
-    // path.insert(0, cNode);
-    path.add(cNode);
+    path.insert(0, cNode);
+    // path.add(cNode);
   }
   return path;
 }
