@@ -132,19 +132,41 @@ List<String>? search(Graph graph, String node, String goal, Set<String> seen) {
 // gefundenen Knoten, von welchem aus er gefunden wurde (der Start von null).
 // Gibt die IDs vom Start bis zum Ziel zurück, null, wenn das Ziel nicht dabei ist.
 List<String>? pathTo(Map<String, String?> previous, String goal) {
-  throw UnimplementedError('pathTo');
+  if (!previous.containsKey(goal)) return null;
+  List<String>? path = [];
+
+  for (String? cNode = goal; cNode != null; cNode = previous[cNode]) {
+    // path.insert(0, cNode);
+    path.add(cNode);
+  }
+  return path;
 }
 
 // Breitensuche: der Weg über die wenigsten Kanten, die IDs vom Start bis
 // zum Ziel, oder null, wenn es keinen gibt. Ruf visit(node) auf, wenn ein
 // Knoten dran ist: Damit spielt die Karte die Suche ab.
 List<String>? breadthFirst(Graph graph, String start, String goal) {
-  throw UnimplementedError('breadthFirst');
-  // Set<String> seen = {};
+  Map<String, String?> previous = {};
+  Set<String> ring = {start};
 
-  // for (Edge edge in graph.edges[start]!) {
-  //   seen.add(edge.to);
-  // }
+  if (!graph.nodes.containsKey(start) || !graph.nodes.containsKey(goal))
+    return pathTo(previous, goal); // will return null
+
+  while (ring.isNotEmpty) {
+    Set<String> nextRing = {};
+    for (String node in ring) {
+      if (previous.containsKey(node)) continue;
+      previous[node] = previous[previous[node]];
+
+      visit(node);
+
+      if (node == goal) return pathTo(previous, goal);
+
+      for (Edge edge in graph.edges[node] ?? []) nextRing.add(edge.to);
+    }
+    ring = nextRing;
+  }
+  return pathTo(previous, goal);
 }
 
 // Dijkstra: der kürzeste Weg in Metern. Gibt dasselbe zurück wie breadthFirst.
@@ -163,7 +185,6 @@ class MinHeap {
   int get length => items.length;
 
   void push(double priority, String value) {
-    // throw UnimplementedError('MinHeap.push');
     items.add((priority, value));
     for (
       int i = items.length - 1;
